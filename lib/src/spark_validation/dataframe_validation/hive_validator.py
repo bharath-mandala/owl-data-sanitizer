@@ -2,6 +2,7 @@ import argparse
 import logging
 from pyspark.sql import SparkSession
 
+from spark_validation.common import DataFrameReader, DataFrameWriter
 from spark_validation.common.config import Config
 from spark_validation.common.constants import Constants
 from spark_validation.dataframe_validation.dataframe_validator import DataframeValidator
@@ -15,8 +16,16 @@ class CreateHiveValidationDF:
     @staticmethod
     def validate(ss, config):
         """Apply validation process using config input file."""
-        source_read_df = ss.table(config.source_df)
-        comparable_dfs_list = [(t, ss.table(t)) for t in config.comparable_dfs_list]
+        source_read_df = DataFrameReader \
+            .jdbc(ss,
+                  config.db_url,
+                  config.db_user,
+                  config.db_password,
+                  config.source_df)
+
+        comparable_dfs_list = [
+            (t, DataFrameReader.jdbc(ss, config.db_url, config.db_user, config.db_password, config.source_df))
+            for t in config.comparable_dfs_list]
 
         validator = DataframeValidator(
             spark=ss,
@@ -41,20 +50,27 @@ class CreateHiveValidationDF:
             Constants.IS_ERROR_COL + Constants.OVER_ALL_COUNT_COL,
         )
         comparison_df = validator.compare()
+        options = {"header": True,
+                   "delimiter": ",",
+                   "encoding": "UTF-8",
+                   "nullValue": "null"}
+        DataFrameWriter.write(correctness_df, "csv", "overwrite", options, config.output_correctness_table)
 
-        correctness_df.write.mode("append").saveAsTable(config.output_correctness_table)
-
-        completeness_df.write.mode("append").saveAsTable(
-            config.output_completeness_table
-        )
-        comparison_df.write.mode("append").saveAsTable(config.output_comparison_table)
+        DataFrameWriter.write(completeness_df, "csv", "overwrite", options, config.output_completeness_table)
+        DataFrameWriter.write(comparison_df, "csv", "overwrite", options, config.output_comparison_table)
 
 
 def main(args):
     """Run the main create table function using the sys arguments."""
-    spark_session = SparkSession.builder.enableHiveSupport().getOrCreate()
+    spark_session = SparkSession.builder \
+        .appName("owl-data-sanitizer") \
+        .master("local") \
+        .config("spark.jars", args.jars) \
+        .config("spark.driver.extraClassPath", args.jars) \
+        .enableHiveSupport().getOrCreate()
     spark_session.conf.set("spark.sql.debug.maxToStringFields", "1000")
     spark_session.conf.set("spark.sql.autoBroadcastJoinThreshold", "-1")
+    spark_session.conf.set("mapreduce.fileoutputcommitter.algorithm.version", "2")
     arg_conf = spark_session.sparkContext.wholeTextFiles(args.config).collect()[0][1]
     config = Config.parse_text(arg_conf)
 
@@ -67,6 +83,7 @@ def create_parser():
     parser.add_argument(
         "-c", dest="config", action="store", help="config file", required=True,
     )
+    parser.add_argument("-jars", dest="jars", action="store", help="Additional Jars", required=False)
     return parser
 
 

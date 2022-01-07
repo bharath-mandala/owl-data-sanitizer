@@ -11,19 +11,25 @@ class Config(ABC):
     """Class with config data."""
 
     def __init__(
-        self,
-        source_df,
-        id_col_name,
-        correctness_rules_dict,
-        parent_children_validation_pairs,
-        completeness_rules_dic,
-        comparable_dfs_list,
-        output_correctness_table,
-        output_completeness_table,
-        output_comparison_table,
-        unique_column_group_values_per_table=[],
-        fuzzy_deduplication_distance=0,
+            self,
+            db_url,
+            db_user,
+            db_password,
+            source_df,
+            id_col_name,
+            correctness_rules_dict,
+            parent_children_validation_pairs,
+            completeness_rules_dic,
+            comparable_dfs_list,
+            output_correctness_table,
+            output_completeness_table,
+            output_comparison_table,
+            unique_column_group_values_per_table=[],
+            fuzzy_deduplication_distance=0,
     ):
+        self.db_url = db_url
+        self.db_user = db_user
+        self.db_password = db_password
         self.source_df = source_df
         self.id_col_name = id_col_name
         self.correctness_rules_dict = correctness_rules_dict
@@ -38,7 +44,9 @@ class Config(ABC):
 
     @staticmethod
     def _create_config(config):
+        print(config)
         try:
+
             correctness_validations = {
                 rule["column"]: rule["rule"]
                 for rule in config["correctness_validations"]
@@ -53,6 +61,9 @@ class Config(ABC):
                 completeness_overall_rule["column"]: completeness_overall_rule["rule"]
             }
             return Config(
+                db_url=config["jdbc_source"]["db_url"],
+                db_user=config["jdbc_source"]["db_user"],
+                db_password=config["jdbc_source"]["db_password"],
                 source_df=config["source_table"]["name"],
                 id_col_name=config["source_table"]["id_column"],
                 correctness_rules_dict=correctness_validations,
@@ -72,8 +83,8 @@ class Config(ABC):
                     "unique_column_group_values_per_table"
                 ]
                 if (
-                    "unique_column_group_values_per_table"
-                    in config["source_table"].keys()
+                        "unique_column_group_values_per_table"
+                        in config["source_table"].keys()
                 )
                 else [],
                 fuzzy_deduplication_distance=config["source_table"][

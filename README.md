@@ -37,46 +37,57 @@ the same table in other environments.
 
 ```
 {
+	"jdbc_source": {
+		"db_url": "jdbc:mysql://localhost:3306/employees",
+		"db_user" : "root",
+		"db_password": "password"
+	},
   "source_table": {
-    "name": "test.data_test",
-    "id_column": "GENERAL_ID",
-    "unique_column_group_values_per_table": ["GENERAL_ID", "ULTIMATE_PARENT_ID"],
-    "fuzzy_deduplication_distance": 0,
-    "output_correctness_table": "test.data_test_correctness",
-    "output_completeness_table": "test.data_test_completeness",
-    "output_comparison_table": "test.data_test_comparison"
+    "name": "employees.employees",
+    "id_column": "emp_no",
+    "output_correctness_table": "employees.data_test_correctness",
+    "output_completeness_table": "employees.data_test_completeness",
+    "output_comparison_table": "employees.data_test_comparison",
+    "unique_column_group_values_per_table": [
+      "emp_no",
+	  "first_name"
+    ],
+    "fuzzy_deduplication_distance": 0
   },
   "correctness_validations": [
     {
-      "column": "CODE",
-      "rule": "CODE is not null and CODE != '' and CODE != 'null'"
+      "column": "emp_no",
+      "rule": "emp_no > 10002"
     },
     {
-      "column": "NAME",
-      "rule": "NAME is not null and NAME != '' and NAME != 'null'"
+      "column": "first_name",
+      "rule": "first_name is not null and first_name != '' and first_name != 'null'"
     },
     {
-      "column": "GENERAL_ID",
-      "rule": "GENERAL_ID is not null and GENERAL_ID != '' and GENERAL_ID != 'null' and CHAR_LENGTH(GENERAL_ID) < 4"
+      "column": "last_name",
+      "rule": "last_name is not null and last_name != '' and last_name != 'null' "
     }
   ],
-  "completeness_validations": [
-    {
+  "completeness_validations": {
+    "overall": {
       "column": "OVER_ALL_COUNT",
       "rule": "OVER_ALL_COUNT <= 7"
     }
-  ],
+  },
   "parent_children_constraints": [
     {
-      "column": "GENERAL_ID",
-      "parent": "ULTIMATE_PARENT_ID"
+      "column": "first_name",
+      "parent": "last_name"
     },
     {
-      "column": "GENERAL_ID",
-      "parent": "PARENT_ID"
+      "column": "emp_no",
+      "parent": "last_name"
     }
   ],
-  "compare_related_tables_list": ["test.diff_df", "test.diff_df_2"]
+  "compare_related_tables_list": [
+    "employees.departments",
+    "employees.dept_manager"
+  ]
 }
 ```
 
@@ -150,6 +161,10 @@ To use in your spark submit command or airflow dag.
 - `application` : `owl-sanitizer-data-quality/latest/src/spark_validation/dataframe_validation/hive_validator.py`
 - `application_package`: `https://pypi.org/project/owl-sanitizer-data-quality/latest/owl-sanitizer-data-quality-latest.tar.gz`
 - `application_params`: `URL_TO_YOUR_REMOTE_CONFIG_FILE`
+
+TO RUN USING PYTHON
+
+`python hive_validator.py -c "config.json -jars /Software/mysql-connector-java-8.0.25.jar`
 
 Contact
 -------

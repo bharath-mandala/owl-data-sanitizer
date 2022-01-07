@@ -1,0 +1,53 @@
+{
+	"jdbc_source": {
+		"db_url": "jdbc:mysql://localhost:3306/employees",
+		"db_user" : "root",
+		"db_password": "password"
+	},
+  "source_table": {
+    "name": "employees.employees",
+    "id_column": "emp_no",
+    "output_correctness_table": "/owl/correctness",
+    "output_completeness_table": "/owl/completeness",
+    "output_comparison_table": "/owl/comparision",
+    "unique_column_group_values_per_table": [
+      "emp_no",
+	  "first_name"
+    ],
+    "fuzzy_deduplication_distance": 0
+  },
+  "correctness_validations": [
+    {
+      "column": "emp_no",
+      "rule": "emp_no > 10002"
+    },
+    {
+      "column": "first_name",
+      "rule": "first_name is not null and first_name != '' and first_name != 'null'"
+    },
+    {
+      "column": "last_name",
+      "rule": "last_name is not null and last_name != '' and last_name != 'null' "
+    }
+  ],
+  "completeness_validations": {
+    "overall": {
+      "column": "OVER_ALL_COUNT",
+      "rule": "OVER_ALL_COUNT <= 7"
+    }
+  },
+  "parent_children_constraints": [
+    {
+      "column": "first_name",
+      "parent": "last_name"
+    },
+    {
+      "column": "emp_no",
+      "parent": "last_name"
+    }
+  ],
+  "compare_related_tables_list": [
+    "employees.departments",
+    "employees.dept_manager"
+  ]
+}
